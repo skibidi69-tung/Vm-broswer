@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuckDuckGo Virtual Browser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #de5833;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .browser-controls {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #de5833;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            box-shadow: 0 0 10px rgba(222, 88, 51, 0.3);
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #de5833;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #c14c2b;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+            transform: translateY(-2px);
+        }
+
+        .url-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .url-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ced4da;
+            border-radius: 20px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .browser-content {
+            height: 600px;
+            border: none;
+            width: 100%;
+        }
+
+        .browser-frame {
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        .status-bar {
+            background: #f8f9fa;
+            padding: 10px 20px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #6c757d;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #de5833;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .history-panel {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            display: none;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f1f3f4;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .history-item:hover {
+            background: #f8f9fa;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🦆 DuckDuckGo Virtual Browser</h1>
+            <p>Trình duyệt ảo an toàn và riêng tư</p>
+        </div>
+
+        <div class="browser-controls">
+            <div class="search-container">
+                <input type="text" id="searchInput" class="search-input" placeholder="Tìm kiếm với DuckDuckGo..." value="">
+                <button onclick="performSearch()" class="btn btn-primary">Tìm kiếm</button>
+            </div>
+
+            <div class="url-bar">
+                <input type="text" id="urlInput" class="url-input" placeholder="Nhập URL (ví dụ: https://example.com)" value="">
+                <button onclick="navigateToUrl()" class="btn btn-secondary">Truy cập</button>
+                <button onclick="showHistory()" class="btn btn-secondary">Lịch sử</button>
+                <button onclick="goHome()" class="btn btn-secondary">Trang chủ</button>
+            </div>
+
+            <div id="historyPanel" class="history-panel"></div>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Đang tải trang...</p>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+
+        <div class="browser-content">
+            <iframe id="browserFrame" class="browser-frame" src="https://duckduckgo.com"></iframe>
+        </div>
+
+        <div class="status-bar">
+            <span id="statusText">Sẵn sàng</span>
+            <span id="currentUrl">https://duckduckgo.com</span>
+        </div>
+    </div>
+
+    <script>
+        let currentUrl = "https://duckduckgo.com";
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function updateStatus(message, url = null) {
+            document.getElementById('statusText').textContent = message;
+            if (url) {
+                document.getElementById('currentUrl').textContent = url;
+                currentUrl = url;
+            }
+        }
+
+        async function performSearch() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return;
+
+            showLoading();
+            updateStatus('Đang tìm kiếm...');
+
+            try {
+                const response = await fetch('/search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `query=${encodeURIComponent(query)}`
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Tạo blob URL để hiển thị nội dung
+                    const blob = new Blob([result.content], { type: 'text/html' });
+                    const url = URL.createObjectURL(blob);
+                    document.getElementById('browserFrame').src = url;
+                    updateStatus('Tìm kiếm hoàn tất', result.url);
+                } else {
+                    showError('Lỗi tìm kiếm: ' + result.error);
+                    updateStatus('Lỗi tìm kiếm');
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+                updateStatus('Lỗi kết nối');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function navigateToUrl() {
+            let url = document.getElementById('urlInput').value.trim();
+            if (!url) return;
+
+            showLoading();
+            updateStatus('Đang tải trang...');
+
+            try {
+                const response = await fetch('/navigate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `url=${encodeURIComponent(url)}`
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Tạo blob URL để hiển thị nội dung
+                    const blob = new Blob([result.content], { type: 'text/html' });
+                    const blobUrl = URL.createObjectURL(blob);
+                    document.getElementById('browserFrame').src = blobUrl;
+                    updateStatus('Tải trang hoàn tất', result.url);
+                } else {
+                    showError('Lỗi truy cập: ' + result.error);
+                    updateStatus('Lỗi truy cập');
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+                updateStatus('Lỗi kết nối');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function showHistory() {
+            try {
+                const response = await fetch('/history');
+                const result = await response.json();
+                
+                const historyPanel = document.getElementById('historyPanel');
+                if (historyPanel.style.display === 'block') {
+                    historyPanel.style.display = 'none';
+                    return;
+                }
+
+                let historyHTML = '';
+                result.history.forEach((url, index) => {
+                    historyHTML += `<div class="history-item" onclick="loadFromHistory('${url}')">${url}</div>`;
+                });
+
+                historyPanel.innerHTML = historyHTML || '<div class="history-item">Chưa có lịch sử</div>';
+                historyPanel.style.display = 'block';
+            } catch (error) {
+                showError('Lỗi tải lịch sử: ' + error.message);
+            }
+        }
+
+        async function loadFromHistory(url) {
+            document.getElementById('urlInput').value = url;
+            document.getElementById('historyPanel').style.display = 'none';
+            await navigateToUrl();
+        }
+
+        function goHome() {
+            document.getElementById('urlInput').value = 'https://duckduckgo.com';
+            navigateToUrl();
+        }
+
+        // Cho phép nhấn Enter để tìm kiếm hoặc điều hướng
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                navigateToUrl();
+            }
+        });
+
+        // Cập nhật URL hiện tại khi iframe thay đổi
+        document.getElementById('browserFrame').addEventListener('load', function() {
+            updateStatus('Đã tải xong', this.src);
+        });
+    </script>
+</body>
+</html>
